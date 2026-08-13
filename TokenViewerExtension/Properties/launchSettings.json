@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "TokenViewerExtension (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "TokenViewerExtension (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

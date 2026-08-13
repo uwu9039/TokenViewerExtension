@@ -1,0 +1,11 @@
+# 构建产物与本地状态（发布源码前必须排除，内含本机绝对路径）
+bin/
+obj/
+.vs/
+*.user
+
+# 本地数据（含 API Key / Token，切勿提交）
+*.json
+!Directory.Packages.props
+!nuget.config
+!launchSettings.json

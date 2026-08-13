@@ -1,0 +1,71 @@
+# TokenViewerExtension — MSIX 自动构建与 GitHub Release 工作流
+#
+# 触发方式：
+#   1. 推送 v* 标签（如 v0.0.1）→ 构建 x64/arm64 的 MSIX 并自动创建 Release
+#   2. 手动运行（Actions → 本工作流 → Run workflow）→ 仅构建并上传产物
+#
+# 参考：微软官方文档「发布命令面板扩展」中的构建命令
+#   dotnet build --configuration Release -p:GenerateAppxPackageOnBuild=true -p:Platform=x64 -p:AppxPackageDir="AppPackages\x64\"
+
+name: 构建并发布 MSIX
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [x64, arm64]
+    runs-on: windows-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: 构建 MSIX（${{ matrix.platform }}）
+        working-directory: TokenViewerExtension/TokenViewerExtension
+        run: dotnet build --configuration Release -p:GenerateAppxPackageOnBuild=true -p:Platform=${{ matrix.platform }} -p:AppxPackageDir="AppPackages\${{ matrix.platform }}\"
+
+      - name: 收集 MSIX 包
+        working-directory: TokenViewerExtension/TokenViewerExtension
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem -Path "AppPackages\${{ matrix.platform }}" -Recurse -Filter "*.msix" | Select-Object -First 1
+          if (-not $msix) { throw "未找到 MSIX 包" }
+          New-Item -ItemType Directory -Force -Path "..\..\dist" | Out-Null
+          Copy-Item $msix.FullName "..\..\dist\"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-${{ matrix.platform }}
+          path: dist/*.msix
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载全部 MSIX 产物
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/*.msix --generate-notes
