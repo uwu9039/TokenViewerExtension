@@ -11,7 +11,7 @@ namespace TokenViewerExtension;
 
 /// <summary>
 /// 直连模式服务：聚合 OpenAI / Anthropic 官方用量 API 与 DeepSeek 官方平台内部接口，
-/// 提供与官方监控平台一致的数据（无需本地代理）。每 5 分钟自动刷新。
+/// 提供与官方监控平台一致的数据。每 5 分钟自动刷新。
 /// </summary>
 #pragma warning disable CA1001 // 生命周期与扩展进程一致，无需手动释放
 internal sealed class DirectUsageService
@@ -74,7 +74,7 @@ internal sealed class DirectUsageService
     }
 
     /// <summary>
-    /// 某代理提供商对应的官方「今日」数据（用于把官方平台数据并入代理统计板块）。
+    /// 官方「今日」数据（官方按天数据延迟时退回月度汇总）。
     /// 官方按天数据可能延迟（全 0），此时退回月度汇总并标注「本月」。
     /// </summary>
     public (long Input, long Output, long Cached, long Requests, bool IsOfficial, string? DayLabel) GetTodayForProvider(string providerId)

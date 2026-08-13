@@ -3,15 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace TokenViewerExtension;
 
 /// <summary>
-/// 总览页（已精简为仅 DeepSeek）：代理状态、今日总计（官方数据优先）、
-/// 用量详情 / 官方用量 / 账户监控 / 用量诊断入口。
+/// 总览页：今日总计（官方数据）、用量详情、官方用量、账户监控、用量诊断入口。
 /// </summary>
 #pragma warning disable CA1001 // 页面实例缓存于扩展生命周期，无需手动释放
 internal sealed partial class OverviewPage : ListPage
@@ -37,73 +35,43 @@ internal sealed partial class OverviewPage : ListPage
     public override IListItem[] GetItems()
     {
         var items = new List<IListItem>();
-        var deepseek = _app.Registry.Providers.First(p => p.Id == "deepseek");
 
-        items.Add(new ListItem(new NoOpCommand())
-        {
-            Title = _app.Proxy.IsRunning ? "本地代理运行中" : "本地代理未运行",
-            Subtitle = _app.Proxy.IsRunning
-                ? $"端口 {deepseek.Port} · 客户端 Base URL 指向 http://127.0.0.1:{deepseek.Port}/v1 可被实时统计（不适用于后台 agent）"
-                : _app.Proxy.Error ?? "请检查扩展设置",
-            Icon = new IconInfo(_app.Proxy.IsRunning ? "\uE73E" : "\uEA39"), // CheckMark / Warning
-        });
-
-        // 今日总计：DeepSeek 有官方数据时用官方数字替换代理统计
-        var (totalInput, totalOutput, _, totalRequests, totalEstimates) = _app.Recorder.GetTodayTotals(null);
-        var (officialInput, officialOutput, _, officialRequests, hasOfficial, _) = _app.Direct.GetTodayForProvider("deepseek");
-        if (hasOfficial)
-        {
-            var (proxyInput, proxyOutput, _, proxyRequests, _) = _app.Recorder.GetTodayTotals("deepseek");
-            totalInput = totalInput - proxyInput + officialInput;
-            totalOutput = totalOutput - proxyOutput + officialOutput;
-            totalRequests = totalRequests - proxyRequests + officialRequests;
-        }
-
+        var (input, output, cached, requests, isOfficial, dayLabel) = _app.Direct.GetTodayForProvider("deepseek");
         items.Add(new ListItem(new NoOpCommand())
         {
             Title = "今日总计",
-            Subtitle = $"输入 {Formatting.Tokens(totalInput)} · 输出 {Formatting.Tokens(totalOutput)} · {totalRequests} 次请求"
-                + (hasOfficial ? "（官方数据）" : string.Empty)
-                + (totalEstimates ? "（部分为估算）" : string.Empty),
+            Subtitle = isOfficial
+                ? $"输入 {Formatting.Tokens(input)} · 输出 {Formatting.Tokens(output)}"
+                    + (cached > 0 ? $" · 缓存 {Formatting.Tokens(cached)}" : string.Empty)
+                    + $" · {requests} 次请求（官方 {Formatting.Day(dayLabel!)}）"
+                : "暂无数据 · 配置官方平台 Token 后显示",
         });
 
-        if (totalRequests == 0 && !hasOfficial)
+        if (!isOfficial)
         {
             items.Add(new ListItem(new NoOpCommand())
             {
-                Title = "为什么全是 0？",
-                Subtitle = "token 消耗只有两个来源：① 客户端请求走本地代理（不适合后台 agent）；② 官方平台数据（推荐：配置平台 Token 后自动显示，无需代理）。Token 获取步骤见「用量图表」页",
+                Title = "没有数据？",
+                Subtitle = "在扩展设置中配置「DeepSeek 官方平台 Token」后自动显示官方用量，获取步骤见「用量图表」页",
                 Icon = new IconInfo("\uEA39"), // Warning
             });
         }
 
-        // DeepSeek 用量详情（官方 + 代理 + 余额 + 图表）
+        // 用量详情
         string detailSubtitle;
-        if (string.IsNullOrWhiteSpace(deepseek.ApiKey))
+        if (isOfficial)
         {
-            detailSubtitle = "未配置 API Key，请打开扩展设置填写";
-        }
-        else if (hasOfficial)
-        {
-            detailSubtitle = $"官方：输入 {Formatting.Tokens(officialInput)} · 输出 {Formatting.Tokens(officialOutput)} · {officialRequests} 次请求";
+            detailSubtitle = $"官方 {Formatting.Day(dayLabel!)}：输入 {Formatting.Tokens(input)} · 输出 {Formatting.Tokens(output)} · {requests} 次请求";
         }
         else
         {
-            var (pInput, pOutput, _, pRequests, _) = _app.Recorder.GetTodayTotals("deepseek");
-            if (pRequests > 0)
-            {
-                detailSubtitle = $"今日 输入 {Formatting.Tokens(pInput)} · 输出 {Formatting.Tokens(pOutput)} · {pRequests} 次请求（代理）";
-            }
-            else
-            {
-                var balance = _app.BalanceCache.Get(deepseek);
-                detailSubtitle = balance is not null
-                    ? $"余额 {balance.Text} · 配置平台 Token 后显示官方用量"
-                    : "今日暂无记录 · 配置平台 Token 可显示官方数据";
-            }
+            var balance = _app.BalanceCache.Get(_app.DeepSeek);
+            detailSubtitle = balance is not null
+                ? $"余额 {balance.Text} · 配置平台 Token 后显示官方用量"
+                : "配置平台 Token 后显示官方用量";
         }
 
-        items.Add(new ListItem(_app.GetDetailPage(deepseek))
+        items.Add(new ListItem(_app.GetDetailPage())
         {
             Title = "DeepSeek 用量详情",
             Subtitle = detailSubtitle,
@@ -130,7 +98,7 @@ internal sealed partial class OverviewPage : ListPage
         items.Add(new ListItem(_app.Balances)
         {
             Title = "账户监控",
-            Subtitle = "余额 + 今日用量 + 官方图表（仅需 API Key，无需代理）",
+            Subtitle = "余额 + 今日用量 + 官方图表",
             Icon = new IconInfo("💳"),
         });
 
@@ -148,17 +116,10 @@ internal sealed partial class OverviewPage : ListPage
             Icon = new IconInfo("\uE72C"),
         });
 
-        items.Add(new ListItem(new RestartProxyCommand(_app.Proxy))
-        {
-            Title = "重启本地代理",
-            Subtitle = "修改端口或密钥设置后可手动重启",
-            Icon = new IconInfo("\uE777"),
-        });
-
         items.Add(new ListItem(new NoOpCommand())
         {
             Title = "使用说明",
-            Subtitle = "① 官方路径（推荐）：设置中配置平台 Token，总览/详情自动并入官方数据；② 代理路径：客户端 Base URL 改为 http://127.0.0.1:8788/v1",
+            Subtitle = "在扩展设置中配置 API Key（余额）与官方平台 Token（用量），即可查看 DeepSeek 用量",
             Icon = new IconInfo("\uE946"), // Help
         });
 

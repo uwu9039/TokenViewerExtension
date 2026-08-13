@@ -2,52 +2,42 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace TokenViewerExtension;
 
 /// <summary>
-/// 扩展设置（已精简为仅 DeepSeek）：API Key、代理端口、官方平台 Token、界面刷新间隔。
+/// 扩展设置：DeepSeek API Key、官方平台 Token、界面刷新间隔。
 /// 设置由命令面板宿主持久化；为防宿主设置随重启丢失，同时保存在本地
 /// %LOCALAPPDATA%\TokenViewerExtension\settings.json，启动时自动恢复。
 /// </summary>
 internal sealed class SettingsManager
 {
     private readonly Settings _settings;
-    private readonly ProviderRegistry _registry;
     private readonly string _filePath;
     private readonly TextSetting _apiKeySetting;
-    private readonly TextSetting _portSetting;
     private readonly TextSetting _tokenSetting;
     private readonly TextSetting _refreshSetting;
 
-    /// <summary>设置发生变化时触发（宿主 SettingsChanged 透传），用于重启代理。</summary>
+    /// <summary>设置发生变化时触发（宿主 SettingsChanged 透传）。</summary>
     public event Action? Changed;
 
-    public SettingsManager(ProviderRegistry registry)
-        : this(registry, filePathOverride: null)
+    public SettingsManager()
+        : this(filePathOverride: null)
     {
     }
 
     /// <param name="filePathOverride">本地设置文件路径（供测试注入；生产环境传 null 使用默认位置）。</param>
-    public SettingsManager(ProviderRegistry registry, string? filePathOverride)
+    public SettingsManager(string? filePathOverride)
     {
         _settings = new Settings();
-        _registry = registry;
 
-        // 复用 slot0_* 键名，与宿主存储兼容
         _apiKeySetting = new TextSetting(
             "slot0_apiKey",
             "DeepSeek API Key",
-            "你的真实 API Key（余额查询与代理转发鉴权用）",
+            "你的真实 API Key（查询余额用）",
             string.Empty);
-        _portSetting = new TextSetting(
-            "slot0_port",
-            "DeepSeek 代理端口",
-            "客户端 Base URL 使用的本机端口（默认 8788）",
-            "8788");
         _tokenSetting = new TextSetting(
             "deepseekPlatformToken",
             "DeepSeek 官方平台 Token",
@@ -60,7 +50,6 @@ internal sealed class SettingsManager
             "30");
 
         _settings.Add(_apiKeySetting);
-        _settings.Add(_portSetting);
         _settings.Add(_tokenSetting);
         _settings.Add(_refreshSetting);
 
@@ -81,6 +70,9 @@ internal sealed class SettingsManager
 
     public Settings Settings => _settings;
 
+    /// <summary>当前 DeepSeek 配置（随设置变化重建）。</summary>
+    public ProviderConfig DeepSeek { get; private set; } = null!;
+
     /// <summary>DeepSeek 官方平台网页登录 Token（localStorage.userToken）。</summary>
     public string DeepSeekPlatformToken => _settings.GetSetting<string>("deepseekPlatformToken") ?? string.Empty;
 
@@ -90,15 +82,10 @@ internal sealed class SettingsManager
     /// <summary>启动时从本地文件恢复设置（宿主设置丢失时兜底）。</summary>
     private void LoadFromFile()
     {
-        var (apiKey, port, token, refresh) = SettingsStore.Load(_filePath);
+        var (apiKey, token, refresh) = SettingsStore.Load(_filePath);
         if (!string.IsNullOrEmpty(apiKey))
         {
             _apiKeySetting.Value = apiKey;
-        }
-
-        if (!string.IsNullOrEmpty(port))
-        {
-            _portSetting.Value = port;
         }
 
         if (!string.IsNullOrEmpty(token))
@@ -117,7 +104,7 @@ internal sealed class SettingsManager
     {
         try
         {
-            SettingsStore.Save(_filePath, _apiKeySetting.Value ?? string.Empty, _portSetting.Value ?? string.Empty, _tokenSetting.Value ?? string.Empty, _refreshSetting.Value ?? string.Empty);
+            SettingsStore.Save(_filePath, _apiKeySetting.Value ?? string.Empty, _tokenSetting.Value ?? string.Empty, _refreshSetting.Value ?? string.Empty);
         }
         catch
         {
@@ -127,20 +114,12 @@ internal sealed class SettingsManager
 
     private void Rebuild()
     {
-        var apiKey = _settings.GetSetting<string>("slot0_apiKey") ?? string.Empty;
-        var portText = _settings.GetSetting<string>("slot0_port") ?? "8788";
-
-        _registry.Update([
-            new ProviderConfig(
-                "deepseek",
-                "DeepSeek",
-                "https://api.deepseek.com/v1",
-                apiKey,
-                int.TryParse(portText, out var port) ? port : 8788,
-                Enabled: true,
-                "https://platform.deepseek.com/usage",
-                "🐳"),
-        ]);
+        DeepSeek = new ProviderConfig(
+            "deepseek",
+            "DeepSeek",
+            _settings.GetSetting<string>("slot0_apiKey") ?? string.Empty,
+            "https://platform.deepseek.com/usage",
+            "🐳");
 
         RefreshIntervalSeconds = int.TryParse(_settings.GetSetting<string>("refreshInterval"), out var seconds)
             ? Math.Clamp(seconds, 5, 3600)

@@ -8,16 +8,10 @@ namespace TokenViewerExtension;
 /// <summary>扩展内共享的服务容器，负责装配各组件并缓存页面实例。</summary>
 internal sealed class AppServices
 {
-    private readonly Dictionary<string, ProviderDetailPage> _detailPages = [];
+    private ProviderDetailPage? _detailPage;
     private readonly Dictionary<string, PlatformUsagePage> _platformPages = [];
 
     public SettingsManager Settings { get; }
-
-    public TokenUsageRecorder Recorder { get; }
-
-    public LocalProxyServer Proxy { get; }
-
-    public ProviderRegistry Registry { get; }
 
     public DirectUsageService Direct { get; }
 
@@ -27,28 +21,22 @@ internal sealed class AppServices
 
     public DiagnosticsPage Diagnostics { get; }
 
-    public AppServices(SettingsManager settings, TokenUsageRecorder recorder, LocalProxyServer proxy, ProviderRegistry registry, DirectUsageService direct)
+    /// <summary>当前 DeepSeek 配置。</summary>
+    public ProviderConfig DeepSeek => Settings.DeepSeek;
+
+    public AppServices(SettingsManager settings, DirectUsageService direct)
     {
         Settings = settings;
-        Recorder = recorder;
-        Proxy = proxy;
-        Registry = registry;
         Direct = direct;
         BalanceCache = new BalanceCache();
         Balances = new BalancesPage(this);
         Diagnostics = new DiagnosticsPage(this);
     }
 
-    /// <summary>获取（或创建并缓存）某提供商的明细页，避免每次刷新都新建导致重复查询余额。</summary>
-    public ProviderDetailPage GetDetailPage(ProviderConfig provider)
+    /// <summary>获取（或创建并缓存）DeepSeek 用量详情页。</summary>
+    public ProviderDetailPage GetDetailPage()
     {
-        if (!_detailPages.TryGetValue(provider.Id, out var page))
-        {
-            page = new ProviderDetailPage(this, provider);
-            _detailPages[provider.Id] = page;
-        }
-
-        return page;
+        return _detailPage ??= new ProviderDetailPage(this);
     }
 
     /// <summary>获取（或创建并缓存）某直连平台的官方数据页。</summary>

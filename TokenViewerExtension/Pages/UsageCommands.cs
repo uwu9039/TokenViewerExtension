@@ -27,24 +27,3 @@ internal sealed partial class RefreshCommand : InvokableCommand
         return CommandResult.KeepOpen();
     }
 }
-
-/// <summary>重启本地代理（设置变更后可用）。</summary>
-internal sealed partial class RestartProxyCommand : InvokableCommand
-{
-    private readonly LocalProxyServer _proxy;
-
-    public override string Name => "重启本地代理";
-
-    public override IconInfo Icon => new("\uE777"); // Refresh key
-
-    public RestartProxyCommand(LocalProxyServer proxy)
-    {
-        _proxy = proxy;
-    }
-
-    public override CommandResult Invoke()
-    {
-        _proxy.Restart();
-        return CommandResult.ShowToast(_proxy.IsRunning ? "本地代理已重启" : $"代理启动失败：{_proxy.Error}");
-    }
-}

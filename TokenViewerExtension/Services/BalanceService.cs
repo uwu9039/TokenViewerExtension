@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TokenViewerExtension;
 
-/// <summary>某提供商账户余额（纯直连，不需要代理路由）。</summary>
+/// <summary>某提供商账户余额（直连官方接口查询）。</summary>
 internal sealed record AccountBalance(string DisplayName, string Text, bool IsAvailable, string? Error);
 
 /// <summary>

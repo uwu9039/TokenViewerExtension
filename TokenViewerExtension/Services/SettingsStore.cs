@@ -10,7 +10,7 @@ namespace TokenViewerExtension;
 internal static class SettingsStore
 {
     /// <summary>把设置保存到本地文件。</summary>
-    public static void Save(string filePath, string apiKey, string port, string platformToken, string refreshInterval)
+    public static void Save(string filePath, string apiKey, string platformToken, string refreshInterval)
     {
         var dir = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(dir))
@@ -23,7 +23,6 @@ internal static class SettingsStore
         {
             writer.WriteStartObject();
             writer.WriteString("apiKey", apiKey);
-            writer.WriteString("port", port);
             writer.WriteString("platformToken", platformToken);
             writer.WriteString("refreshInterval", refreshInterval);
             writer.WriteEndObject();
@@ -33,26 +32,25 @@ internal static class SettingsStore
     }
 
     /// <summary>从本地文件读取设置；文件不存在或损坏时返回空字符串。</summary>
-    public static (string ApiKey, string Port, string PlatformToken, string RefreshInterval) Load(string filePath)
+    public static (string ApiKey, string PlatformToken, string RefreshInterval) Load(string filePath)
     {
         try
         {
             if (!File.Exists(filePath))
             {
-                return (string.Empty, string.Empty, string.Empty, string.Empty);
+                return (string.Empty, string.Empty, string.Empty);
             }
 
             using var doc = JsonDocument.Parse(File.ReadAllText(filePath));
             var root = doc.RootElement;
             return (
                 GetString(root, "apiKey"),
-                GetString(root, "port"),
                 GetString(root, "platformToken"),
                 GetString(root, "refreshInterval"));
         }
         catch
         {
-            return (string.Empty, string.Empty, string.Empty, string.Empty);
+            return (string.Empty, string.Empty, string.Empty);
         }
     }
 
