@@ -1,0 +1,20 @@
+name: 临时计算安装器哈希
+on:
+  workflow_dispatch:
+jobs:
+  hash:
+    runs-on: windows-latest
+    steps:
+      - name: 下载并计算 SHA256
+        shell: pwsh
+        run: |
+          $urls = @(
+            "https://github.com/uwu9039/TokenViewerExtension/releases/download/v0.0.3/TokenViewerExtension-Setup-0.0.3.0-x64.exe",
+            "https://github.com/uwu9039/TokenViewerExtension/releases/download/v0.0.3/TokenViewerExtension-Setup-0.0.3.0-arm64.exe"
+          )
+          foreach ($u in $urls) {
+            $name = ($u -split "/")[-1]
+            Invoke-WebRequest -Uri $u -OutFile $name -UseBasicParsing
+            $hash = (Get-FileHash $name -Algorithm SHA256).Hash
+            Write-Host "HASH $name = $hash"
+          }
