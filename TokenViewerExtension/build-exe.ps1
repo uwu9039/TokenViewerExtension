@@ -45,7 +45,7 @@ foreach ($platform in $Platforms) {
     $iss = Get-Content (Join-Path $ProjectDir "setup-template.iss") -Raw
     $iss = $iss -replace '#define AppVersion ".*"', "#define AppVersion `"$version`""
     $iss = $iss.Replace('win-x64\publish', "win-$platform\publish")
-    $iss = $iss -replace 'OutputBaseFilename=(.*?)\{#AppVersion\}', "`$1{#AppVersion}-$platform"
+    $iss = $iss -replace 'OutputBaseFilename=(.*?)\{#AppVersion\}', "OutputBaseFilename=`$1{#AppVersion}-$platform"
     if ($platform -eq "arm64") {
         $iss = $iss -replace 'ArchitecturesAllowed=x64compatible', 'ArchitecturesAllowed=arm64'
         $iss = $iss -replace 'ArchitecturesInstallIn64BitMode=x64compatible', 'ArchitecturesInstallIn64BitMode=arm64'
