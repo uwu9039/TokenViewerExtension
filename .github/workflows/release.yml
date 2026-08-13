@@ -68,4 +68,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" dist/*.msix --generate-notes
+          gh release create "${{ github.ref_name }}" dist/*.msix --generate-notes --repo "${{ github.repository }}"
