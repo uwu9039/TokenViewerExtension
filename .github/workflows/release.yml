@@ -34,17 +34,17 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: 构建 MSIX（${{ matrix.platform }}）
-        working-directory: TokenViewerExtension/TokenViewerExtension
+        working-directory: TokenViewerExtension
         run: dotnet build --configuration Release -p:GenerateAppxPackageOnBuild=true -p:Platform=${{ matrix.platform }} -p:AppxPackageDir="AppPackages\${{ matrix.platform }}\"
 
       - name: 收集 MSIX 包
-        working-directory: TokenViewerExtension/TokenViewerExtension
+        working-directory: TokenViewerExtension
         shell: pwsh
         run: |
           $msix = Get-ChildItem -Path "AppPackages\${{ matrix.platform }}" -Recurse -Filter "*.msix" | Select-Object -First 1
           if (-not $msix) { throw "未找到 MSIX 包" }
-          New-Item -ItemType Directory -Force -Path "..\..\dist" | Out-Null
-          Copy-Item $msix.FullName "..\..\dist\"
+          New-Item -ItemType Directory -Force -Path "..\dist" | Out-Null
+          Copy-Item $msix.FullName "..\dist\"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
