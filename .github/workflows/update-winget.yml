@@ -1,0 +1,70 @@
+# TokenViewerExtension — WinGet 清单自动更新工作流
+#
+# 触发方式：
+#   1. Release 发布后自动触发（release published）
+#   2. 手动运行并指定版本号
+#
+# 首次提交清单需手动执行 wingetcreate（见 PUBLISHING.md），
+# 本工作流负责后续版本的自动更新。
+
+name: 更新 WinGet 清单
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版本号（如 0.0.3.0；留空则从 Release 资产自动获取）
+        required: false
+        type: string
+
+env:
+  PACKAGE_IDENTIFIER: uwu9039.TokenViewerExtension
+  GITHUB_USER_NAME: uwu9039
+  GITHUB_REPO: TokenViewerExtension
+
+jobs:
+  update-winget:
+    runs-on: windows-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 获取版本号与安装器地址
+        id: info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ inputs.version }}" -ne "") {
+            $version = "${{ inputs.version }}"
+            $tag = "v$version"
+          } else {
+            $release = gh release view "${{ github.event.release.tag_name }}" --json tagName,assets --jq . --repo "${{ env.GITHUB_USER_NAME }}/${{ env.GITHUB_REPO }}" | ConvertFrom-Json
+            $tag = $release.tagName
+            $x64 = $release.assets | Where-Object { $_.name -like "*-x64.exe" } | Select-Object -First 1
+            if (-not $x64) { throw "Release 中未找到 x64 安装器" }
+            $version = $x64.name -replace ".*Setup-([\d.]+)-x64\.exe", '$1'
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: 下载 wingetcreate
+        run: iwr https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+
+      - name: 更新并提交 WinGet 清单
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ steps.info.outputs.VERSION }}"
+          $tag = "${{ steps.info.outputs.TAG }}"
+          $x64Url = "https://github.com/${{ env.GITHUB_USER_NAME }}/${{ env.GITHUB_REPO }}/releases/download/$tag/TokenViewerExtension-Setup-$version-x64.exe"
+          $arm64Url = "https://github.com/${{ env.GITHUB_USER_NAME }}/${{ env.GITHUB_REPO }}/releases/download/$tag/TokenViewerExtension-Setup-$version-arm64.exe"
+          Write-Host "版本 $version，更新清单..."
+          .\wingetcreate.exe update "${{ env.PACKAGE_IDENTIFIER }}" `
+            --version $version `
+            --urls "$x64Url|x64" "$arm64Url|arm64" `
+            --token $env:GITHUB_TOKEN `
+            --submit

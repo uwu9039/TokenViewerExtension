@@ -9,3 +9,7 @@ obj/
 !Directory.Packages.props
 !nuget.config
 !launchSettings.json
+
+# 构建脚本生成的临时安装脚本
+TokenViewerExtension/setup-x64.iss
+TokenViewerExtension/setup-arm64.iss
