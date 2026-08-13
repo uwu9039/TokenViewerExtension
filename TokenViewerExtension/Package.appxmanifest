@@ -9,12 +9,12 @@
   IgnorableNamespaces="uap uap3 rescap">
 
   <Identity
-    Name="TokenViewerExtension"
-    Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    Name="uwu9039.TokenViewerExtension"
+    Publisher="CN=29993E04-B412-4F43-B8E5-2F7E56BD908C"
     Version="0.0.3.0" />
 <Properties>
-    <DisplayName>TokenViewerExtension</DisplayName>
-    <PublisherDisplayName>A Lone Developer</PublisherDisplayName>
+    <DisplayName>Token 用量监控</DisplayName>
+    <PublisherDisplayName>uwu9039</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -32,8 +32,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="TokenViewerExtension"
-        Description="TokenViewerExtension"
+        DisplayName="Token 用量监控"
+        Description="基于 PowerToys 命令面板的 DeepSeek Token 用量监控"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
@@ -43,8 +43,8 @@
       <Extensions>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
-            <com:ExeServer Executable="TokenViewerExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="TokenViewerExtension">
-              <com:Class Id="24e5fecd-2dc1-4f0a-9b02-350545898591" DisplayName="TokenViewerExtension" />
+            <com:ExeServer Executable="TokenViewerExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="Token 用量监控">
+              <com:Class Id="24e5fecd-2dc1-4f0a-9b02-350545898591" DisplayName="Token 用量监控" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
@@ -52,8 +52,8 @@
           <uap3:AppExtension Name="com.microsoft.commandpalette"
             Id="ID"
             PublicFolder="Public"
-            DisplayName="TokenViewerExtension"
-            Description="TokenViewerExtension">
+            DisplayName="Token 用量监控"
+            Description="基于 PowerToys 命令面板的 DeepSeek Token 用量监控">
             <uap3:Properties>
               <CmdPalProvider>
                 <Activation>

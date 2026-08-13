@@ -13,6 +13,11 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <!-- Microsoft Store 发布身份 -->
+    <AppxPackageIdentityName>uwu9039.TokenViewerExtension</AppxPackageIdentityName>
+    <AppxPackagePublisher>CN=29993E04-B412-4F43-B8E5-2F7E56BD908C</AppxPackagePublisher>
+    <AppxPackageVersion>0.0.3.0</AppxPackageVersion>
+
   </PropertyGroup>
 
   <ItemGroup>
