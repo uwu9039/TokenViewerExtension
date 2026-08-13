@@ -13,3 +13,6 @@ obj/
 # 构建脚本生成的临时安装脚本
 TokenViewerExtension/setup-x64.iss
 TokenViewerExtension/setup-arm64.iss
+
+# 本地 MSIX 打包产物
+TokenViewerExtension/AppPackages/
