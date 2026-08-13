@@ -17,7 +17,7 @@
 3. 双击安装包安装，或在 PowerShell 中执行：
 
    ```
-   Add-AppxPackage -Path .\TokenViewerExtension_0.0.2.0_x64.msix
+   Add-AppxPackage -Path .\TokenViewerExtension_0.0.3.0_x64.msix
    ```
 
 4. 打开命令面板（默认 Alt+Space），输入 Reload 回车，选择「Reload Command Palette Extension」
