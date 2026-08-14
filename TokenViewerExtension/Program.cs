@@ -2,6 +2,7 @@
 // Copyright (c) TokenViewerExtension contributors. Licensed under the MIT License.
 
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.CommandPalette.Extensions;
 using Shmuelie.WinRTServer;
@@ -13,6 +14,7 @@ namespace TokenViewerExtension;
 /// 程序入口。本扩展以 WinRT COM 服务器形式运行：
 /// 命令面板宿主通过「-RegisterProcessAsComServer」参数启动本进程，
 /// 然后按需请求 <see cref="TokenViewerExtension"/> 实例。
+/// 直接启动（无该参数）时显示说明窗口，避免被误判为启动崩溃。
 /// </summary>
 internal static class Program
 {
@@ -21,7 +23,12 @@ internal static class Program
     {
         if (args.Length == 0 || args[0] != "-RegisterProcessAsComServer")
         {
-            Console.WriteLine("本程序由 PowerToys 命令面板以 COM 服务器方式启动，不支持直接运行。");
+            // 用户/认证测试直接启动 exe 时：给出可见反馈，而不是立即退出
+            MessageBox(
+                IntPtr.Zero,
+                "TokenViewerExtension 是 PowerToys 命令面板扩展。\n\n请打开 PowerToys 命令面板（默认 Alt+Space）使用本扩展。\n\nThis is a PowerToys Command Palette extension. Open the Command Palette to use it.",
+                "TokenViewerExtension",
+                0x40 | 0x1000); // MB_ICONINFORMATION | MB_SYSTEMMODAL
             return;
         }
 
@@ -40,4 +47,7 @@ internal static class Program
         server.Stop();
         server.UnsafeDispose();
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
 }
